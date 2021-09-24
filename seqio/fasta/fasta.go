@@ -74,38 +74,41 @@ func (r *Reader) Read() (seq.Seq, error) {
 		// Get the scanned line
 		line := r.scan.Bytes()
 
-		if line[0] == IdPreffix {
-			// This is an ID line
-			if r.currId != "" {
-				// Return the current sequence if not nil
-				if newSeq.Length() == 0 {
-					// Empty sequence or bad format
-					return newSeq, errors.New("[FASTA READER]: Empty sequence or bad format.")
+		// FIX: can have an empty line at the end of the file
+		if len(line) > 0 {
+			if line[0] == IdPreffix {
+				// This is an ID line
+				if r.currId != "" {
+					// Return the current sequence if not nil
+					if newSeq.Length() == 0 {
+						// Empty sequence or bad format
+						return newSeq, errors.New("[FASTA READER]: Empty sequence or bad format.")
+					}
+
+					// Set sequence data
+					newSeq.SetId(r.currId)
+					newSeq.SetDesc(r.currDesc)
+
+					// Save the new ID
+					r.currId, r.currDesc = parseIdLine(string(line[1:]))
+
+					// Return the completed sequence
+					return newSeq, nil
+				} else {
+					// Save the new ID
+					r.currId, r.currDesc = parseIdLine(string(line[1:]))
+
+					// Thow an error if the sequence is not nil
+					if newSeq.Length() > 0 {
+						return newSeq, errors.New("[FASTA READER]: Sequence without ID or possible bad format.")
+					}
+
+					// Continue
 				}
-
-				// Set sequence data
-				newSeq.SetId(r.currId)
-				newSeq.SetDesc(r.currDesc)
-
-				// Save the new ID
-				r.currId, r.currDesc = parseIdLine(string(line[1:]))
-
-				// Return the completed sequence
-				return newSeq, nil
 			} else {
-				// Save the new ID
-				r.currId, r.currDesc = parseIdLine(string(line[1:]))
-
-				// Thow an error if the sequence is not nil
-				if newSeq.Length() > 0 {
-					return newSeq, errors.New("[FASTA READER]: Sequence without ID or possible bad format.")
-				}
-
-				// Continue
+				//TODO: Control input character
+				newSeq.AppendSequence(line)
 			}
-		} else {
-			//TODO: Control input character
-			newSeq.AppendSequence(line)
 		}
 	}
 	// Scanning is finicher
