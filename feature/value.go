@@ -61,7 +61,7 @@ func (v *Value) ToString(tag, prefix string, nchar int) string {
 			return fmt.Sprintf("%s%s", prefix, tmpStr)
 		} else {
 			// Split value into multiple lines
-			reSpace := regexp.MustCompile(`\s`)
+			reSpace := regexp.MustCompile(`\s+`)
 			reComa := regexp.MustCompile(`\,`)
 			var subValue []string
 
@@ -86,20 +86,24 @@ func (v *Value) ToString(tag, prefix string, nchar int) string {
 				}
 				subValue = append(subValue, words[i])
 			} else {
-				subValue = append(subValue)
+				subValue = append(subValue, tmpStr)
 
 			}
 
 			// Now fill the final string, split by length if necessary
-			finalStr := ""
+			finalStr := prefix
 			wi := 0
 			lenAvail := lenRem // Available length
 			for wi < len(subValue) {
+				if lenAvail == 0 {
+					finalStr += "\n" + prefix
+					lenAvail = lenRem
+				}
 				// Split the word if longer than the full
 				if len(subValue[wi]) > lenRem {
 					// Terminate the current line with a fragment of the word
-					finalStr += subValue[wi][0:(lenAvail-1)] + "\n"
-					subValue[wi] = subValue[wi][lenAvail:]
+					finalStr += subValue[wi][0:(lenAvail)] + "\n" + prefix
+					subValue[wi] = subValue[wi][(lenAvail):]
 					lenAvail = lenRem
 				} else {
 					// The current word is small enough
@@ -110,7 +114,7 @@ func (v *Value) ToString(tag, prefix string, nchar int) string {
 						wi++
 					} else {
 						// Remaining place is not enough go to next line
-						finalStr += "\n"
+						finalStr += "\n" + prefix
 						lenAvail = lenRem
 					}
 				}
