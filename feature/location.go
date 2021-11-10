@@ -247,3 +247,21 @@ func (l *Location) UpdateSES() {
 		}
 	}
 }
+
+func (l *Location) ToString() string {
+	if l.SubCount > 0 {
+		str := l.SubLocations[0].ToString()
+		for i := 1; i < l.SubCount; i++ {
+			str += "," + l.SubLocations[0].ToString()
+		}
+
+		if l.RevComp {
+			return "complement(" + str + ")"
+		} else {
+			return str
+		}
+	} else {
+		// NOTE: Possible throw an error or a warning...
+		return ""
+	}
+}
