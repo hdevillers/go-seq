@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type SubLocation struct {
@@ -96,6 +97,11 @@ func NewSubLocationFromString(s string) *SubLocation {
 		panic(fmt.Sprintf("The sub-location %s contains non valid characters.", s))
 	}
 
+	// Start must be lesser than End
+	if sl.Start > sl.End {
+		panic(fmt.Sprintf("Sub-location (%s) with a start greater than end, while coordinate must be relative the direct strand.", s))
+	}
+
 	return &sl
 }
 
@@ -165,8 +171,79 @@ func NewLocationSimple(s, e int, rc bool) *Location {
 
 // Create a location from a string
 //(see insdc rules: https://www.insdc.org/documents/feature-table#3.4)
-func NewLocationString(s string) *Location {
+func NewLocationFromString(s string) *Location {
 	var l Location
+	l.Start = 0
+	l.End = 0
+	l.Strand = 1
+	l.SubCount = 0
+	l.RevComp = false
 
+	// Check if location is in complement strand
+	if regexp.MustCompile(`^complement`).MatchString(s) {
+		l.RevComp = true
+		l.Strand = -1
+		s = s[11:(len(s) - 1)]
+	}
+
+	// Check if the location has multiple sub-locations
+	if regexp.MustCompile(`^join`).MatchString(s) {
+		// Delete the join instruction
+		s = s[5:(len(s) - 1)]
+
+		// Split sub-location and treat-it
+		sl := strings.Split(s, ",")
+		l.SubLocations = make([]SubLocation, len(sl))
+		for sli, slv := range sl {
+			l.SubLocations[sli] = *NewSubLocationFromString(slv)
+		}
+		l.SubCount = len(sl)
+
+		// Update Start, End and Strand attributes
+		l.UpdateSES()
+	} else {
+		l.SubLocations = make([]SubLocation, 1)
+		l.SubLocations[0] = *NewSubLocationFromString(s)
+		l.Start = l.SubLocations[0].Start
+		l.End = l.SubLocations[0].End
+		if l.SubLocations[0].RevComp {
+			l.Strand = l.Strand * -1
+		}
+	}
 	return &l
+}
+
+// Update Start, End and Strand values
+func (l *Location) UpdateSES() {
+	start := l.SubLocations[0].Start
+	end := l.SubLocations[0].End
+
+	if l.SubCount > 1 {
+		for i := 1; i < l.SubCount; i++ {
+			if start > l.SubLocations[i].Start {
+				start = l.SubLocations[i].Start
+			}
+			if end < l.SubLocations[i].End {
+				end = l.SubLocations[i].End
+			}
+		}
+	}
+
+	l.Start = start
+	l.End = end
+
+	if l.RevComp {
+		if l.SubLocations[0].RevComp {
+			// Weird case: double reverse complement!
+			l.Strand = 1
+		} else {
+			l.Strand = -1
+		}
+	} else {
+		if l.SubLocations[0].RevComp {
+			l.Strand = -1
+		} else {
+			l.Strand = 1
+		}
+	}
 }
