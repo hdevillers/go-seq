@@ -118,3 +118,40 @@ func TestLocationReadWriteString(t *testing.T) {
 		}
 	}
 }
+
+func TestLocationLength(t *testing.T) {
+	str := []string{
+		"100..200",
+		"complement(100..200)",
+		"join(2..100,300..433)",
+		"complement(join(13..234,400..1000))",
+	}
+	len := []int{101, 101, 432, 988}
+
+	for i := range str {
+		l := NewLocationFromString(str[i])
+		ol := l.Length()
+		if ol != len[i] {
+			t.Errorf("Failed to compute location length. Expected: %d; Obtained: %d.", len[i], ol)
+		}
+	}
+}
+
+func TestLocationSplicedLength(t *testing.T) {
+	str := []string{
+		"100..200",
+		"join(1..100,201..300,401..500)",
+		"complement(join(201..400,500))",
+		"1",
+		"join(<201..210,400)",
+	}
+	len := []int{101, 300, 201, 1, 11}
+
+	for i := range str {
+		l := NewLocationFromString(str[i])
+		ol := l.SplicedLength()
+		if ol != len[i] {
+			t.Errorf("Failed to compute location spliced length. Expected: %d; Obtained: %d.", len[i], ol)
+		}
+	}
+}

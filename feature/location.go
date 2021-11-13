@@ -270,3 +270,21 @@ func (l *Location) ToString() string {
 		return ""
 	}
 }
+
+// Compute global length of the location
+func (l *Location) Length() int {
+	return l.End - l.Start + 1
+}
+
+// Compute spliced length of the location
+func (l *Location) SplicedLength() int {
+	if l.SubCount == 1 {
+		return l.Length()
+	} else {
+		len := 0
+		for _, sl := range l.SubLocations {
+			len += sl.End - sl.Start + 1
+		}
+		return len
+	}
+}
