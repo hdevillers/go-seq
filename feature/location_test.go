@@ -57,3 +57,64 @@ func TestSubLoctionBadCharacter(t *testing.T) {
 	s := "234..2O0"
 	_ = NewSubLocationFromString(s)
 }
+
+func TestCreateLocationSimple(t *testing.T) {
+	l := NewLocationSimple(100, 200, false)
+	if l.Start != 100 {
+		t.Errorf("Failed to retrieve location start. Expected: 100; Obtained: %d", l.Start)
+	}
+	if l.End != 200 {
+		t.Errorf("Failed to retrieve location end. Expected: 200; Obtained: %d", l.End)
+	}
+	if l.RevComp {
+		t.Error("The location was expected in direct strand, it is in reverse complement.")
+	}
+	if l.Strand != 1 {
+		t.Errorf("Location strand is wrong. Expected: 1; Obtained: %d", l.Strand)
+	}
+	if l.SubCount != 1 {
+		t.Errorf("Wrong number of sub-locations. Expected: 1; Obtained: %d", l.SubCount)
+	}
+}
+
+func TestCreateLocationFromString(t *testing.T) {
+	str := "complement(join(13..234,400..1000))"
+	l := NewLocationFromString(str)
+
+	if l.Start != 13 {
+		t.Errorf("Failed to retrieve location start. Expected: 13; Obtained: %d", l.Start)
+	}
+	if l.End != 1000 {
+		t.Errorf("Failed to retrieve location end. Expected: 1000; Obtained: %d", l.End)
+	}
+	if !l.RevComp {
+		t.Error("The location was expected in reverse strand, it is in direct strand.")
+	}
+	if l.Strand == 1 {
+		t.Errorf("Location strand is wrong. Expected: -1; Obtained: %d", l.Strand)
+	}
+	if l.SubCount != 2 {
+		t.Errorf("Wrong number of sub-locations. Expected: 2; Obtained: %d", l.SubCount)
+	}
+}
+
+func TestLocationReadWriteString(t *testing.T) {
+	str := []string{
+		"100..200",
+		"complement(100..200)",
+		"join(2..100,300..433)",
+		"complement(join(13..234,400..1000))",
+		"join(complement(400..1000),complement(13..234))",
+		"complement(join(complement(400..1000),complement(13..234)))",
+		"join(<1..200,300..400,500)",
+		"<234..>678",
+	}
+
+	for _, s := range str {
+		l := NewLocationFromString(s)
+		ns := l.ToString()
+		if s != ns {
+			t.Errorf("Failed to read/write location string. Excpected: %s; Obtained: %s.", s, ns)
+		}
+	}
+}

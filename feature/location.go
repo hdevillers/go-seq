@@ -155,7 +155,7 @@ func NewLocationSimple(s, e int, rc bool) *Location {
 
 	var l Location
 	l.Start = s
-	l.End = s
+	l.End = e
 	if rc {
 		l.Strand = -1
 		l.RevComp = true
@@ -204,6 +204,7 @@ func NewLocationFromString(s string) *Location {
 	} else {
 		l.SubLocations = make([]SubLocation, 1)
 		l.SubLocations[0] = *NewSubLocationFromString(s)
+		l.SubCount = 1
 		l.Start = l.SubLocations[0].Start
 		l.End = l.SubLocations[0].End
 		if l.SubLocations[0].RevComp {
@@ -252,7 +253,11 @@ func (l *Location) ToString() string {
 	if l.SubCount > 0 {
 		str := l.SubLocations[0].ToString()
 		for i := 1; i < l.SubCount; i++ {
-			str += "," + l.SubLocations[0].ToString()
+			str += "," + l.SubLocations[i].ToString()
+		}
+
+		if l.SubCount > 1 {
+			str = "join(" + str + ")"
 		}
 
 		if l.RevComp {
