@@ -288,3 +288,12 @@ func (l *Location) SplicedLength() int {
 		return len
 	}
 }
+
+// Increment location by n bases
+func (l *Location) AddBases(n int) {
+	for i := range l.SubLocations {
+		l.SubLocations[i].Start += n
+		l.SubLocations[i].End += n
+	}
+	l.UpdateSES()
+}

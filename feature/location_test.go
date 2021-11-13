@@ -155,3 +155,35 @@ func TestLocationSplicedLength(t *testing.T) {
 		}
 	}
 }
+
+func TestLocationAddBase(t *testing.T) {
+	str := []string{
+		"100..200",
+		"join(1..100,201..300,401..500)",
+		"complement(join(201..400,500))",
+		"1",
+		"join(<201..210,400)",
+	}
+	len := []int{101, 300, 201, 1, 11}
+	exp := []string{
+		"200..300",
+		"join(101..200,301..400,501..600)",
+		"complement(join(301..500,600))",
+		"101",
+		"join(<301..310,500)",
+	}
+
+	for i := range str {
+		l := NewLocationFromString(str[i])
+		l.AddBases(100)
+		ol := l.SplicedLength()
+		if ol != len[i] {
+			t.Errorf("Failed to compute location spliced length after adding 100 bases. Expected: %d; Obtained: %d.", len[i], ol)
+		}
+		obs := l.ToString()
+		if exp[i] != obs {
+			t.Errorf("Failed to add base and write location string. Expected: %s; Obtained: %s.", exp[i], obs)
+		}
+	}
+
+}
