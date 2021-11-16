@@ -55,19 +55,64 @@ func (r *Reader) IsEOF() bool {
 func (r *Reader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
 	var newSeq seq.Seq
+	iseof := true
 
+READ:
 	for r.scan.Scan() {
 		// Check possible scanning error
 		err := r.scan.Err()
 		if err != nil {
 			return newSeq, err
 		}
+		iseof = false
 
 		// Get the scanned line
 		line := r.scan.Bytes()
 
-		if line[0] == IdPreffix {
-			// This is an ID line
+		if len(line) > 0 {
+			if line[0] == IdPreffix {
+				// This is an ID line
+				newSeq.SetId(string(line[1:]))
+
+				// Get the sequence line
+				r.scan.Scan()
+				if r.scan.Err() != nil {
+					return newSeq, r.scan.Err()
+				}
+				line = r.scan.Bytes()
+				newSeq.AppendSequence(line)
+
+				// Skip the spacer line
+				r.scan.Scan()
+				if r.scan.Err() != nil {
+					return newSeq, r.scan.Err()
+				}
+
+				// Get the quality line
+				r.scan.Scan()
+				if r.scan.Err() != nil {
+					return newSeq, r.scan.Err()
+				}
+				line = r.scan.Bytes()
+				qerr := newSeq.Quality.AppendStrScore(line)
+				// qerr are not fatal, just thow it
+				if qerr != nil {
+					fmt.Fprintln(os.Stderr, qerr)
+				}
+
+				break READ
+			}
+		}
+	}
+
+	if iseof {
+		r.eof = true
+	}
+
+	return newSeq, nil
+}
+
+/*
 			if r.currId != "" {
 				// Return the current sequence if not nil
 				if newSeq.Length() == 0 {
@@ -133,6 +178,7 @@ func (r *Reader) Read() (seq.Seq, error) {
 	// Return with no error
 	return newSeq, nil
 }
+*/
 
 func (w *Writer) Write(s seq.Seq) error {
 	// Check sequence validity
