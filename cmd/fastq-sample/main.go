@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/hdevillers/go-seq/seqio"
 )
@@ -64,19 +66,76 @@ func main() {
 
 		if *nsam != 0 {
 			nstored := 0
-		SEQ:
+		SEQ1:
 			for seqin1.Next() {
 				seqin1.CheckPanic()
 				nstored++
 				seqout1.Write(seqin1.Seq())
 				if nstored == *nsam {
-					break SEQ
+					break SEQ1
 				}
 			}
 			if *nsam > nstored {
 				fmt.Fprintf(os.Stderr, "Required %d reads but input file contains only %d reads.", *nsam, nstored)
 			}
+		} else {
+			// Setup random seed
+			seeder := rand.NewSource(time.Now().UnixNano())
+			random := rand.New(seeder)
+			for seqin1.Next() {
+				seqin1.CheckPanic()
+				keep := random.Float64()
+				if keep <= *psam {
+					seqout1.Write(seqin1.Seq())
+				}
+			}
+		}
+	} else {
+		seqin1 := seqio.NewReader(*in1, "fastq", *gunzip)
+		seqin1.CheckPanic()
+		defer seqin1.Close()
+		seqin2 := seqio.NewReader(*in2, "fastq", *gunzip)
+		seqin2.CheckPanic()
+		defer seqin2.Close()
+
+		seqout1 := seqio.NewWriter(*out1, "fastq", *gunzip)
+		seqout1.CheckPanic()
+		defer seqout1.Close()
+		seqout2 := seqio.NewWriter(*out2, "fastq", *gunzip)
+		seqout2.CheckPanic()
+		defer seqout2.Close()
+
+		if *nsam != 0 {
+			nstored := 0
+		SEQ2:
+			for seqin1.Next() && seqin2.Next() {
+				seqin1.CheckPanic()
+				seqin2.CheckPanic()
+
+				nstored++
+				seqout1.Write(seqin1.Seq())
+				seqout2.Write(seqin2.Seq())
+				if nstored == *nsam {
+					break SEQ2
+				}
+			}
+			if *nsam > nstored {
+				fmt.Fprintf(os.Stderr, "Required %d reads but input file contains only %d reads.", *nsam, nstored)
+			}
+		} else {
+			// Setup random seed
+			seeder := rand.NewSource(time.Now().UnixNano())
+			random := rand.New(seeder)
+			for seqin1.Next() && seqin2.Next() {
+				seqin1.CheckPanic()
+				seqin2.CheckPanic()
+
+				keep := random.Float64()
+				if keep <= *psam {
+					seqout1.Write(seqin1.Seq())
+					seqout2.Write(seqin2.Seq())
+				}
+			}
 		}
 	}
-
 }
