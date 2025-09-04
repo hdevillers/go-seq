@@ -7,12 +7,6 @@ import (
 	"github.com/hdevillers/go-seq/seqio"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 func main() {
 	// Retrieve argument values
 	input := flag.String("input", "STDIN", "Input fasta file")
