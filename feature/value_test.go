@@ -55,28 +55,28 @@ func TestValueToString(t *testing.T) {
 	out := v.ToString(tag, pre, nch)
 	exl := len(pre) + len(tag) + len(val) + 4
 	if len(out) != exl {
-		t.Error("Value to string convertion failed (IsBool: false, HasQuote: true).")
+		t.Error("Value to string conversion failed (IsBool: false, HasQuote: true).")
 	}
 
 	v.HasQuote = false
 	out = v.ToString(tag, pre, nch)
 	exl = len(pre) + len(tag) + len(val) + 2
 	if len(out) != exl {
-		t.Error("Value to string convertion failed (IsBool: false, HasQuote: false).")
+		t.Error("Value to string conversion failed (IsBool: false, HasQuote: false).")
 	}
 
 	v.IsBool = true
 	out = v.ToString(tag, pre, nch)
 	exl = len(pre) + len(tag) + 1
 	if len(out) != exl {
-		t.Error("Value to string convertion failed (IsBool: true, HasQuote: false).")
+		t.Error("Value to string conversion failed (IsBool: true, HasQuote: false).")
 	}
 }
 
 func TestTooSmallLine(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("ToString call should have faile due to too short line length.")
+			t.Error("ToString call should have failed due to too short line length.")
 		}
 	}()
 

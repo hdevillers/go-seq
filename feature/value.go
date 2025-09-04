@@ -5,6 +5,7 @@ import (
 	"regexp"
 )
 
+// Default attribute values
 const (
 	D_RAWSTR    string = "NO_VALUE"
 	D_ISBOOL    bool   = false

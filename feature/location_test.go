@@ -42,7 +42,7 @@ func TestSubLocationReadWriteString(t *testing.T) {
 		sl := NewSubLocationFromString(s)
 		sout := sl.ToString()
 		if s != sout {
-			t.Errorf("Failed to reproduice sub-location string. Expected: %s; Obtained: %s", s, sout)
+			t.Errorf("Failed to reproduce sub-location string. Expected: %s; Obtained: %s", s, sout)
 		}
 	}
 }
