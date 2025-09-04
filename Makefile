@@ -10,6 +10,10 @@ build:
 	go build -o bin/sequence-shuffle ./cmd/sequence-shuffle/main.go
 	go build -o bin/fastq-sample ./cmd/fastq-sample/main.go
 
+test:
+	go test -v feature/location.go feature/location_test.go
+	go test -v feature/value.go feature/value_test.go
+
 install:
 	cp bin/sequence-length $(INSTALL_DIR)/sequence-length
 	cp bin/sequence-random $(INSTALL_DIR)/sequence-random
