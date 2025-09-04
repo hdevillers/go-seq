@@ -1,35 +1,34 @@
-package fasta
+package seqio
 
 import (
 	"errors"
 	"strings"
 
 	"github.com/hdevillers/go-seq/seq"
-	"github.com/hdevillers/go-seq/seqio/seqitf"
 )
 
 const (
-	IdPreffix  byte = '>'
-	LineLength int  = 60
+	FastaIdPreffix  byte = '>'
+	FastaLineLength int  = 60
 )
 
 // Fasta sequence reader struct
-type Reader struct {
-	scan     seqitf.FileScanner
+type FastaReader struct {
+	scan     FileScanner
 	currId   string
 	currDesc string
 	eof      bool
 }
 
 // Fasta sequence write struct
-type Writer struct {
-	write seqitf.FileWriter
+type FastaWriter struct {
+	write FileWriter
 	Count int
 }
 
 // Generate a new reader
-func NewReader(fs seqitf.FileScanner) *Reader {
-	return &Reader{
+func NewFastaReader(fs FileScanner) *FastaReader {
+	return &FastaReader{
 		scan:     fs,
 		currId:   "",
 		currDesc: "",
@@ -38,9 +37,9 @@ func NewReader(fs seqitf.FileScanner) *Reader {
 }
 
 // Generate a new writer
-//func NewWriter(wf *bufio.Writer) *Writer {
-func NewWriter(fw seqitf.FileWriter) *Writer {
-	return &Writer{
+// func NewWriter(wf *bufio.Writer) *Writer {
+func NewFastaWriter(fw FileWriter) *FastaWriter {
+	return &FastaWriter{
 		write: fw,
 		Count: 0,
 	}
@@ -55,12 +54,12 @@ func parseIdLine(idl string) (string, string) {
 }
 
 // Return true if reachs the end-of-file
-func (r *Reader) IsEOF() bool {
+func (r *FastaReader) IsEOF() bool {
 	return r.eof
 }
 
 // Read a single fasta entry
-func (r *Reader) Read() (seq.Seq, error) {
+func (r *FastaReader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
 	var newSeq seq.Seq
 
@@ -76,13 +75,13 @@ func (r *Reader) Read() (seq.Seq, error) {
 
 		// FIX: can have an empty line at the end of the file
 		if len(line) > 0 {
-			if line[0] == IdPreffix {
+			if line[0] == FastaIdPreffix {
 				// This is an ID line
 				if r.currId != "" {
 					// Return the current sequence if not nil
 					if newSeq.Length() == 0 {
 						// Empty sequence or bad format
-						return newSeq, errors.New("[FASTA READER]: Empty sequence or bad format.")
+						return newSeq, errors.New("[FASTA READER]: Empty sequence or bad format")
 					}
 
 					// Set sequence data
@@ -100,7 +99,7 @@ func (r *Reader) Read() (seq.Seq, error) {
 
 					// Thow an error if the sequence is not nil
 					if newSeq.Length() > 0 {
-						return newSeq, errors.New("[FASTA READER]: Sequence without ID or possible bad format.")
+						return newSeq, errors.New("[FASTA READER]: Sequence without ID or possible bad format")
 					}
 
 					// Continue
@@ -120,17 +119,17 @@ func (r *Reader) Read() (seq.Seq, error) {
 
 	// Check if the last sequence is empty
 	if newSeq.Length() == 0 {
-		return newSeq, errors.New("[FASTA READER]: The last sequence is empty.")
+		return newSeq, errors.New("[FASTA READER]: The last sequence is empty")
 	}
 
 	// Return with no error
 	return newSeq, nil
 }
 
-func (w *Writer) Write(s seq.Seq) error {
+func (w *FastaWriter) Write(s seq.Seq) error {
 	//Add the sequence ID
 	if s.Id == "" {
-		return errors.New("[FASTA WRITER]: Missing sequence ID.")
+		return errors.New("[FASTA WRITER]: Missing sequence ID")
 	}
 	_, err := w.write.Write([]byte(">" + s.Id))
 	if err != nil {
@@ -155,7 +154,7 @@ func (w *Writer) Write(s seq.Seq) error {
 	for i := 0; i < s.Length(); i++ {
 		w.write.Write([]byte{s.Sequence[i]})
 		n++
-		if n == LineLength {
+		if n == FastaLineLength {
 			w.write.Write([]byte{'\n'})
 			n = 0
 		}
@@ -171,7 +170,7 @@ func (w *Writer) Write(s seq.Seq) error {
 	return err
 }
 
-func (w *Writer) Flush() error {
+func (w *FastaWriter) Flush() error {
 	err := w.write.Flush()
 	return err
 }

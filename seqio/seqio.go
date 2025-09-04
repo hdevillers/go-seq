@@ -8,28 +8,24 @@ import (
 	gzip "github.com/klauspost/pgzip"
 
 	"github.com/hdevillers/go-seq/seq"
-	"github.com/hdevillers/go-seq/seqio/fasta"
-	"github.com/hdevillers/go-seq/seqio/fastnq"
-	"github.com/hdevillers/go-seq/seqio/fastq"
-	"github.com/hdevillers/go-seq/seqio/seqitf"
 )
 
 const (
-	defaultCompress = false
+	defaultCompress bool = false
 )
 
 // Reader structure
 type Reader struct {
-	fcloser seqitf.FileCloser
-	sreader seqitf.SeqReader
+	fcloser FileCloser
+	sreader SeqReader
 	seq     seq.Seq
 	err     error
 }
 
 // Writer structure
 type Writer struct {
-	fcloser seqitf.FileCloser
-	swriter seqitf.SeqWriter
+	fcloser FileCloser
+	swriter SeqWriter
 	err     error
 }
 
@@ -55,8 +51,8 @@ func NewReader(file string, format string, compress ...bool) *Reader {
 	}
 
 	// Inti. the bufio.Scanner
-	var fs seqitf.FileScanner
-	var fc seqitf.FileCloser
+	var fs FileScanner
+	var fc FileCloser
 
 	if compress[0] {
 		// Need de-compression
@@ -74,21 +70,21 @@ func NewReader(file string, format string, compress ...bool) *Reader {
 		fc = f
 	}
 
-	var sreader seqitf.SeqReader
+	var sreader SeqReader
 	switch format {
 	case "fasta", "fa":
-		sreader = fasta.NewReader(fs)
+		sreader = NewFastaReader(fs)
 		return &Reader{
 			fcloser: fc,
 			sreader: sreader}
 	case "fastq", "fq":
-		sreader = fastq.NewReader(fs)
+		sreader = NewFastqReader(fs)
 		return &Reader{
 			fcloser: fc,
 			sreader: sreader,
 		}
 	case "fastnq", "fnq":
-		sreader = fastnq.NewReader(fs)
+		sreader = NewFastnqReader(fs)
 		return &Reader{
 			fcloser: fc,
 			sreader: sreader,
@@ -155,8 +151,8 @@ func NewWriter(file string, format string, compress ...bool) *Writer {
 	}
 
 	// Inti. the bufio.Scanner
-	var fw seqitf.FileWriter
-	var fc seqitf.FileCloser
+	var fw FileWriter
+	var fc FileCloser
 
 	if compress[0] {
 		// Need de-compression
@@ -169,16 +165,16 @@ func NewWriter(file string, format string, compress ...bool) *Writer {
 		fc = f
 	}
 
-	var swriter seqitf.SeqWriter
+	var swriter SeqWriter
 	switch format {
 	case "fasta", "fa":
-		swriter = fasta.NewWriter(fw)
+		swriter = NewFastaWriter(fw)
 		return &Writer{
 			fcloser: fc,
 			swriter: swriter,
 		}
 	case "fastq", "fq", "fastnq", "fnq":
-		swriter = fastq.NewWriter(fw)
+		swriter = NewFastqWriter(fw)
 		return &Writer{
 			fcloser: fc,
 			swriter: swriter,

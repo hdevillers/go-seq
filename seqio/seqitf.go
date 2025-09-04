@@ -1,4 +1,4 @@
-package seqitf
+package seqio
 
 import (
 	"github.com/hdevillers/go-seq/seq"

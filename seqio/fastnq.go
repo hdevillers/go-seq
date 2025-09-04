@@ -1,26 +1,20 @@
-package fastnq
+package seqio
 
 import (
 	"github.com/hdevillers/go-seq/seq"
-	"github.com/hdevillers/go-seq/seqio/seqitf"
-)
-
-const (
-	IdPreffix byte = '@'
-	SpPreffix byte = '+'
 )
 
 // Fastq sequence reader struct
-type Reader struct {
-	scan     seqitf.FileScanner
+type FastnqReader struct {
+	scan     FileScanner
 	currId   string
 	eof      bool
 	waitQual bool
 }
 
 // Generate a new reader
-func NewReader(fs seqitf.FileScanner) *Reader {
-	return &Reader{
+func NewFastnqReader(fs FileScanner) *FastnqReader {
+	return &FastnqReader{
 		scan:     fs,
 		currId:   "",
 		eof:      false,
@@ -29,14 +23,15 @@ func NewReader(fs seqitf.FileScanner) *Reader {
 }
 
 // Return true if reachs the end-of-file
-func (r *Reader) IsEOF() bool {
+func (r *FastnqReader) IsEOF() bool {
 	return r.eof
 }
 
 // Read a single fastq entry
-func (r *Reader) Read() (seq.Seq, error) {
+func (r *FastnqReader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
 	var newSeq seq.Seq
+	iseof := true
 
 	/*
 		NOTE: this parser version is made to save time:
@@ -44,12 +39,13 @@ func (r *Reader) Read() (seq.Seq, error) {
 		2) Fastq file is supposed well formed
 	*/
 
-	for r.scan.Scan() {
+	if r.scan.Scan() {
 		// Check possible scanning error
 		err := r.scan.Err()
 		if err != nil {
 			return newSeq, err
 		}
+		iseof = false
 
 		// Get the ID line
 		line := r.scan.Bytes()
@@ -63,10 +59,11 @@ func (r *Reader) Read() (seq.Seq, error) {
 		// Skip spacer line and quality line
 		r.scan.Scan()
 		r.scan.Scan()
-
-		return newSeq, nil
 	}
 
-	r.eof = true
+	if iseof {
+		r.eof = true
+	}
+
 	return newSeq, nil
 }
