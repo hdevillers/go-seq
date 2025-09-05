@@ -1,35 +1,87 @@
 package feature
 
 import (
+	"errors"
 	"fmt"
-	"regexp"
+	"strings"
 )
 
 // Default attribute values
 const (
-	D_RAWSTR    string = "NO_VALUE"
-	D_ISBOOL    bool   = false
-	D_HASQUOTE  bool   = true
-	D_TAGPREFIX string = "/"
+	D_RAWSTR   string = "NO_VALUE"
+	D_ISBOOL   bool   = false
+	D_HASQUOTE bool   = true
 )
 
+// Value structure
 type Value struct {
 	RawStr   string
 	IsBool   bool
 	HasQuote bool
 }
 
-func NewValue(s ...string) *Value {
+// Value constructor
+func NewValue(s ...string) (Value, error) {
+	v := Value{D_RAWSTR, D_ISBOOL, D_HASQUOTE}
 	if s == nil {
-		return &Value{D_RAWSTR, D_ISBOOL, D_HASQUOTE}
+		// Calling the constructor without string value yields
+		// to a Value object with default attribute values
+		return v, nil
 	} else {
 		if len(s) > 1 {
-			panic("You are supposed to provide only one string value.")
+			// Only one string should be given
+			return v, errors.New("when creating Value object, you are supposed to provide only one string")
 		}
-		return &Value{s[0], D_ISBOOL, D_HASQUOTE}
+
+		// If the provided string is empty then consider it is
+		// a boolean objet
+		if s[0] == "" {
+			v.IsBool = true
+			return v, nil
+		}
+
+		// Else, check if the provided string start with quote character
+		str, pre := strings.CutPrefix(s[0], "\"") // Keep the original string unchanged
+		str, suf := strings.CutSuffix(str, "\"")
+		v.RawStr = str
+		// It has a starting quote
+		if pre {
+			// Then it must ends with a quote character
+			if suf {
+				v.HasQuote = true
+			} else {
+				// Missing terminal quote
+				return v, fmt.Errorf("the provided string value miss a terminal quote (%s)", s[0])
+			}
+		} else {
+			if suf {
+				// Missing starting quote
+				return v, fmt.Errorf("the provided string value miss a starting quote (%s)", s[0])
+			}
+		}
+
+		// Return the initialized Value object
+		return v, nil
 	}
 }
 
+// Get a formatted string of the stored value
+func (v *Value) ToString() string {
+	// If boolean and/or RawStr is equal to D_RAWSTR then return an empty string
+	if v.IsBool || v.RawStr == D_RAWSTR {
+		return ""
+	}
+
+	// Add quote if necessary
+	if v.HasQuote {
+		return fmt.Sprintf("\"%s\"", v.RawStr)
+	}
+
+	// No quote required
+	return v.RawStr
+}
+
+/* Old version of ToString method, to be spread into qualifier class...
 func (v *Value) ToString(tag, prefix string, nchar int) string {
 	// Check if the nchar is not too small
 	lenTag := len(tag)
@@ -125,3 +177,4 @@ func (v *Value) ToString(tag, prefix string, nchar int) string {
 		}
 	}
 }
+*/
