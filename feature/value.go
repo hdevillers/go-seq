@@ -10,7 +10,7 @@ import (
 const (
 	D_RAWSTR   string = "NO_VALUE"
 	D_ISBOOL   bool   = false
-	D_HASQUOTE bool   = true
+	D_HASQUOTE bool   = false
 )
 
 // Value structure
@@ -44,10 +44,12 @@ func NewValue(s ...string) (Value, error) {
 		str, pre := strings.CutPrefix(s[0], "\"") // Keep the original string unchanged
 		str, suf := strings.CutSuffix(str, "\"")
 		v.RawStr = str
+		v.HasQuote = false // Ensure that by default there is no quote
 		// It has a starting quote
 		if pre {
 			// Then it must ends with a quote character
 			if suf {
+				// Than the value has quotes
 				v.HasQuote = true
 			} else {
 				// Missing terminal quote
