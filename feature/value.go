@@ -8,8 +8,8 @@ import (
 
 // Default attribute values
 const (
-	D_RAWSTR   string = "NO_VALUE"
-	D_ISBOOL   bool   = false
+	D_RAWSTR   string = ""
+	D_ISBOOL   bool   = true
 	D_HASQUOTE bool   = false
 )
 
@@ -30,7 +30,7 @@ func NewValue(s ...string) (Value, error) {
 	} else {
 		if len(s) > 1 {
 			// Only one string should be given
-			return v, errors.New("when creating Value object, you are supposed to provide only one string")
+			return v, errors.New("only one string object per qualifier value is allowed")
 		}
 
 		// If the provided string is empty then consider it is
@@ -38,6 +38,8 @@ func NewValue(s ...string) (Value, error) {
 		if s[0] == "" {
 			v.IsBool = true
 			return v, nil
+		} else {
+			v.IsBool = false
 		}
 
 		// Else, check if the provided string start with quote character

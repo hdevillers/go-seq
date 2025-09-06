@@ -13,6 +13,7 @@ build:
 test:
 	go test -v feature/location.go feature/location_test.go
 	go test -v feature/value.go feature/value_test.go
+	go test -v feature/qualifier.go feature/value.go feature/qualifier_test.go
 
 install:
 	cp bin/sequence-length $(INSTALL_DIR)/sequence-length

@@ -30,8 +30,8 @@ func TestCreateGivenValue(t *testing.T) {
 	if v.RawStr != expect {
 		t.Error("'RawStr' value is not set properly compare to a given value.")
 	}
-	if v.IsBool != D_ISBOOL {
-		t.Error("Default 'IsBool' value is not set properly.")
+	if v.IsBool {
+		t.Error("'IsBool' value is supposed to be false.")
 	}
 	if v.HasQuote != D_HASQUOTE {
 		t.Error(("Default 'HasQuote' value is not set properly."))
