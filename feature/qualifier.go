@@ -1,17 +1,26 @@
 package feature
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Qualifier struct {
 	Tag   string
 	Value Value
 }
 
-func NewQualifier(t, v string) (Qualifier, error) {
+func NewQualifier(t string, v ...string) (Qualifier, error) {
 	q := new(Qualifier)
 	var err error
 	q.Tag = t
-	q.Value, err = NewValue(v)
+	if len(v) == 0 {
+		q.Value, err = NewValue()
+	} else if len(v) == 1 {
+		q.Value, err = NewValue(v[0])
+	} else {
+		err = errors.New("only one string object per qualifier value is allowed")
+	}
 
 	return *q, err
 }
