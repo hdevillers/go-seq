@@ -6,12 +6,13 @@ type Feature struct {
 	Qualifiers []Qualifier
 }
 
-func NewFeature(t, l string) *Feature {
+func NewFeature(t, l string) (*Feature, error) {
 	f := new(Feature)
+	var err error
 	f.Type = t
-	f.Location = *NewLocationFromString(l)
+	f.Location, err = NewLocationFromString(l)
 	f.Qualifiers = make([]Qualifier, 0)
-	return f
+	return f, err
 }
 
 func (f *Feature) AddQualifier(t, v string) error {

@@ -20,7 +20,11 @@ func TestCreateDefaultSubLocation(t *testing.T) {
 
 func TestCreateSubLocationFromString(t *testing.T) {
 	s := "500..1000"
-	sl := NewSubLocationFromString(s)
+	sl, err := NewSubLocationFromString(s)
+
+	if err != nil {
+		t.Errorf("This call to NewSubLocationFromString should not return an error: %s", err)
+	}
 
 	if sl.Start != 500 {
 		t.Error("Failed to parse start value in SubLocation.")
@@ -39,7 +43,11 @@ func TestSubLocationReadWriteString(t *testing.T) {
 	}
 
 	for _, s := range ss {
-		sl := NewSubLocationFromString(s)
+		sl, err := NewSubLocationFromString(s)
+		if err != nil {
+			t.Errorf("This call to NewSubLocationFromString should not return an error: %s", err)
+		}
+
 		sout := sl.ToString()
 		if s != sout {
 			t.Errorf("Failed to reproduce sub-location string. Expected: %s; Obtained: %s", s, sout)
@@ -48,18 +56,18 @@ func TestSubLocationReadWriteString(t *testing.T) {
 }
 
 func TestSubLoctionBadCharacter(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Failed to detect a bad character in a string.")
-		}
-	}()
-
 	s := "234..2O0"
-	_ = NewSubLocationFromString(s)
+	_, err := NewSubLocationFromString(s)
+	if err == nil {
+		t.Errorf("This call to NewSubLocationFromString should return a parsing error (bad character)")
+	}
 }
 
 func TestCreateLocationSimple(t *testing.T) {
-	l := NewLocationSimple(100, 200, false)
+	l, err := NewLocationSimple(100, 200, false)
+	if err != nil {
+		t.Errorf("This call to NewLocationSimple should not return an error: %s", err)
+	}
 	if l.Start != 100 {
 		t.Errorf("Failed to retrieve location start. Expected: 100; Obtained: %d", l.Start)
 	}
@@ -79,7 +87,11 @@ func TestCreateLocationSimple(t *testing.T) {
 
 func TestCreateLocationFromString(t *testing.T) {
 	str := "complement(join(13..234,400..1000))"
-	l := NewLocationFromString(str)
+	l, err := NewLocationFromString(str)
+
+	if err != nil {
+		t.Errorf("This call to NewLocationFromString should not return an error: %s", err)
+	}
 
 	if l.Start != 13 {
 		t.Errorf("Failed to retrieve location start. Expected: 13; Obtained: %d", l.Start)
@@ -111,7 +123,10 @@ func TestLocationReadWriteString(t *testing.T) {
 	}
 
 	for _, s := range str {
-		l := NewLocationFromString(s)
+		l, err := NewLocationFromString(s)
+		if err != nil {
+			t.Errorf("This call to NewLocationFromString should not return an error: %s", err)
+		}
 		ns := l.ToString()
 		if s != ns {
 			t.Errorf("Failed to read/write location string. Excpected: %s; Obtained: %s.", s, ns)
@@ -129,7 +144,10 @@ func TestLocationLength(t *testing.T) {
 	len := []int{101, 101, 432, 988}
 
 	for i := range str {
-		l := NewLocationFromString(str[i])
+		l, err := NewLocationFromString(str[i])
+		if err != nil {
+			t.Errorf("This call to NewLocationFromString should not return an error: %s", err)
+		}
 		ol := l.Length()
 		if ol != len[i] {
 			t.Errorf("Failed to compute location length. Expected: %d; Obtained: %d.", len[i], ol)
@@ -148,7 +166,10 @@ func TestLocationSplicedLength(t *testing.T) {
 	len := []int{101, 300, 201, 1, 11}
 
 	for i := range str {
-		l := NewLocationFromString(str[i])
+		l, err := NewLocationFromString(str[i])
+		if err != nil {
+			t.Errorf("This call to NewLocationFromString should not return an error: %s", err)
+		}
 		ol := l.SplicedLength()
 		if ol != len[i] {
 			t.Errorf("Failed to compute location spliced length. Expected: %d; Obtained: %d.", len[i], ol)
@@ -174,7 +195,10 @@ func TestLocationAddBase(t *testing.T) {
 	}
 
 	for i := range str {
-		l := NewLocationFromString(str[i])
+		l, err := NewLocationFromString(str[i])
+		if err != nil {
+			t.Errorf("This call to NewLocationFromString should not return an error: %s", err)
+		}
 		l.AddBases(100)
 		ol := l.SplicedLength()
 		if ol != len[i] {

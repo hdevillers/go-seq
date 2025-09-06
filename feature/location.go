@@ -1,6 +1,7 @@
 package feature
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -19,8 +20,8 @@ type SubLocation struct {
 }
 
 // Create a simple sublocation from coordinate pairs
-func NewSubLocation(s, e int) *SubLocation {
-	return &SubLocation{
+func NewSubLocation(s, e int) SubLocation {
+	return SubLocation{
 		s, e, false, false,
 		false, false, false,
 		false,
@@ -37,8 +38,9 @@ func NewSubLocation(s, e int) *SubLocation {
 122.330		Exact coordinate are unknown but included in the range
 122^123     Point a position between the bases
 */
-func NewSubLocationFromString(s string) *SubLocation {
+func NewSubLocationFromString(s string) (SubLocation, error) {
 	var sl SubLocation
+	var err error
 	sl.SglBase = false
 	sl.RevComp = false
 	sl.UnkStr = false
@@ -89,20 +91,20 @@ func NewSubLocationFromString(s string) *SubLocation {
 					}
 				} else {
 					// Unconsistant format
-					panic(fmt.Sprintf("The sub-location %s has an unsupported format.", s))
+					err = fmt.Errorf("the sub-location %s has an unsupported format", s)
 				}
 			}
 		}
 	} else {
-		panic(fmt.Sprintf("The sub-location %s contains non valid characters.", s))
+		err = fmt.Errorf("the sub-location %s contains non valid characters", s)
 	}
 
 	// Start must be lesser than End
 	if sl.Start > sl.End {
-		panic(fmt.Sprintf("Sub-location (%s) with a start greater than end, while coordinate must be relative the direct strand.", s))
+		err = fmt.Errorf("sub-location (%s) with a start greater than end, while coordinate must be relative the direct strand", s)
 	}
 
-	return &sl
+	return sl, err
 }
 
 func (sl *SubLocation) ToString() string {
@@ -148,12 +150,13 @@ type Location struct {
 }
 
 // Create a simple location with a start, an end and a strand
-func NewLocationSimple(s, e int, rc bool) *Location {
+func NewLocationSimple(s, e int, rc bool) (Location, error) {
+	var l Location
+
 	if s > e {
-		panic("In location, the start is supposed to be smaller than the end.")
+		return l, errors.New("in a location object, the start is supposed to be smaller than the end")
 	}
 
-	var l Location
 	l.Start = s
 	l.End = e
 	if rc {
@@ -163,16 +166,17 @@ func NewLocationSimple(s, e int, rc bool) *Location {
 		l.Strand = 1
 		l.RevComp = false
 	}
-	l.SubLocations = append(l.SubLocations, *NewSubLocation(s, e))
+	l.SubLocations = append(l.SubLocations, NewSubLocation(s, e))
 	l.SubCount = 1
 
-	return &l
+	return l, nil
 }
 
 // Create a location from a string
-//(see insdc rules: https://www.insdc.org/documents/feature-table#3.4)
-func NewLocationFromString(s string) *Location {
+// (see insdc rules: https://www.insdc.org/documents/feature-table#3.4)
+func NewLocationFromString(s string) (Location, error) {
 	var l Location
+	var err error
 	l.Start = 0
 	l.End = 0
 	l.Strand = 1
@@ -195,7 +199,10 @@ func NewLocationFromString(s string) *Location {
 		sl := strings.Split(s, ",")
 		l.SubLocations = make([]SubLocation, len(sl))
 		for sli, slv := range sl {
-			l.SubLocations[sli] = *NewSubLocationFromString(slv)
+			l.SubLocations[sli], err = NewSubLocationFromString(slv)
+			if err != nil {
+				return l, err
+			}
 		}
 		l.SubCount = len(sl)
 
@@ -203,7 +210,7 @@ func NewLocationFromString(s string) *Location {
 		l.UpdateSES()
 	} else {
 		l.SubLocations = make([]SubLocation, 1)
-		l.SubLocations[0] = *NewSubLocationFromString(s)
+		l.SubLocations[0], err = NewSubLocationFromString(s)
 		l.SubCount = 1
 		l.Start = l.SubLocations[0].Start
 		l.End = l.SubLocations[0].End
@@ -211,7 +218,7 @@ func NewLocationFromString(s string) *Location {
 			l.Strand = l.Strand * -1
 		}
 	}
-	return &l
+	return l, err
 }
 
 // Update Start, End and Strand values
