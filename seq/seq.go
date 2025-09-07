@@ -1,18 +1,23 @@
 package seq
 
 import (
+	"github.com/hdevillers/go-seq/feature"
 	"github.com/hdevillers/go-seq/quality"
 )
 
 type Seq struct {
-	Id       string
-	Desc     string
-	Sequence []byte
-	Quality  quality.Quality
+	Id          string
+	Desc        string
+	Sequence    []byte
+	Quality     quality.Quality
+	Annotations map[string]string
+	Features    []*feature.Feature
 }
 
 func NewSeq(id string) *Seq {
 	p := Seq{Id: id}
+	p.Annotations = make(map[string]string)
+	p.Features = make([]*feature.Feature, 0)
 	return &p
 }
 
