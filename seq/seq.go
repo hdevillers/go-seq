@@ -10,13 +10,13 @@ type Seq struct {
 	Desc        string
 	Sequence    []byte
 	Quality     quality.Quality
-	Annotations map[string]string
+	Annotations map[string][]string
 	Features    []*feature.Feature
 }
 
 func NewSeq(id string) *Seq {
 	p := Seq{Id: id}
-	p.Annotations = make(map[string]string)
+	p.Annotations = make(map[string][]string)
 	p.Features = make([]*feature.Feature, 0)
 	return &p
 }

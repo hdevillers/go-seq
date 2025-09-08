@@ -3,7 +3,10 @@ package seqio
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 
+	"github.com/hdevillers/go-seq/feature"
 	"github.com/hdevillers/go-seq/seq"
 )
 
@@ -44,15 +47,97 @@ func (r *EmblReader) IsEOF() bool {
 	return r.eof
 }
 
+/*
+	HEADER READING METHODS
+*/
+
+// Parse ID line
+func parseEmblIdLine(dt string, a *map[string][]string) (string, error) {
+	// Initiate annotation entries linked to ID line
+	(*a)["ID_line"] = make([]string, 0)
+	(*a)["ID_msg"] = make([]string, 0)
+	(*a)["version"] = make([]string, 0)
+	(*a)["topology"] = make([]string, 0)
+	(*a)["molecular_type"] = make([]string, 0)
+	(*a)["data_class"] = make([]string, 0)
+	(*a)["taxonomic_division"] = make([]string, 0)
+	(*a)["sequence_length"] = make([]string, 0)
+
+	// Split the provided string
+	dts := strings.Split(dt, "; ")
+
+	// Prepare regex
+	reId := regexp.MustCompile(`^([\w_\-\.]+)`)
+
+	// dts should be an array of 7 strings
+	if len(dts) == 7 {
+		// Check if ID is ok
+		id := reId.FindStringSubmatch(dts[0])
+		if len(id) == 0 {
+			return "", fmt.Errorf("ID line is malformed: failed to find the sequence id: %s", dt)
+		}
+
+		// Get the sequence version
+		tmp := regexp.MustCompile(`(\d+)$`).FindStringSubmatch(dts[1])
+		if len(tmp) == 0 {
+			(*a)["ID_line"] = append((*a)["ID_line"], dt)
+			(*a)["ID_msg"] = append((*a)["ID_msg"], "ID line is malformed: failed to retrieve the sequence version")
+		} else {
+			(*a)["version"] = append((*a)["version"], tmp[0])
+		}
+
+		// Get the topology (no check done)
+		(*a)["topology"] = append((*a)["topology"], dts[2])
+
+		// Get the molecular type (no check done)
+		(*a)["molecular_type"] = append((*a)["molecular_type"], dts[3])
+
+		// Get the data class (no check done)
+		(*a)["data_class"] = append((*a)["data_class"], dts[4])
+
+		// Get the taxonomic division (no check done)
+		(*a)["taxonomic_division"] = append((*a)["taxonomic_division"], dts[5])
+
+		// Get the sequence length (just check it is numerical)
+		tmp = regexp.MustCompile(`^(\d+)`).FindStringSubmatch(dts[6])
+		if len(tmp) == 0 {
+			(*a)["ID_line"] = append((*a)["ID_line"], dt)
+			(*a)["ID_msg"] = append((*a)["ID_msg"], "ID line is malformed: failed to retrieve the sequence length")
+		} else {
+			(*a)["sequence_length"] = append((*a)["sequence_length"], tmp[0])
+		}
+
+		// Return the retrieved ID and no error
+		return id[0], nil
+	} else {
+		// ID line is malformed
+		// Try to get at least the ID of the sequence
+		tmp := reId.FindStringSubmatch(dt)
+		if len(tmp) == 1 {
+			// Just keep the ID line as it is
+			(*a)["ID_line"] = append((*a)["ID_line"], dt)
+			(*a)["ID_msg"] = append((*a)["ID_msg"], "ID line is malformed: failed to find the seven element it should contain")
+			return tmp[0], nil
+		} else {
+			// Failed to get at least an ID
+			return "", fmt.Errorf("ID line is malformed: failed to find the sequence id: %s", dt)
+		}
+	}
+}
+
 // EMBL Read method
 func (r *EmblReader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
 	var newSeq seq.Seq
 
+	// Initialize attributes
+	newSeq.Annotations = make(map[string][]string)
+	newSeq.Features = make([]*feature.Feature, 0)
+
 	// First scan the header lines
 	hasID := false // Control that entry has an ID line
 	hasFH := false // Control that entry has an FH line
-	lastTag := ""
+	lastTag := ""  // Keep last line tag found
 HEADER:
 	for r.scan.Scan() {
 		// Check possible scanning error
@@ -90,7 +175,12 @@ HEADER:
 			continue
 		case "ID":
 			hasID = true // Found the ID line
-			// parseIdLine(line)
+			newSeq.Id, err = parseEmblIdLine(string(line[4:]), &newSeq.Annotations)
+			if err != nil {
+				return newSeq, err
+			}
+		case "AC":
+
 		case "FH":
 			hasFH = true // Found the FH line
 			lastTag = "FH"
