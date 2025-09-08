@@ -125,6 +125,37 @@ func parseEmblIdLine(dt string, a *map[string][]string) (string, error) {
 	}
 }
 
+// Parse value from line separated by semi-colon
+func parseEmblSCLine(dt, key, end string, a *map[string][]string) {
+	// Initiate annotation if required
+	_, ok := (*a)[key]
+	if !ok {
+		(*a)[key] = make([]string, 0)
+	}
+
+	// Delete tailing semi-colon (if it exists)
+	dt, _ = strings.CutSuffix(dt, end)
+
+	// Replace space characters by nothing (just in case line misses some spaces)
+	dt = strings.ReplaceAll(dt, "; ", ";")
+
+	// Split data
+	dts := strings.Split(dt, ";")
+
+	// Store AC value(s)
+	(*a)[key] = append((*a)[key], dts...)
+}
+
+// Parse date (DT) lines
+func parseEmblDtLine(dt, a *map[string][]string) {
+	// Initiate annotations (if required)
+	_, ok := (*a)["DT_line"]
+	if !ok {
+		(*a)["DT_line"] = make([]string, 0)
+		(*a)["DT_msg"] = make([]string, 0)
+	}
+}
+
 // EMBL Read method
 func (r *EmblReader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
@@ -180,7 +211,15 @@ HEADER:
 				return newSeq, err
 			}
 		case "AC":
+			parseEmblSCLine(string(line[4:]), "accession", ";", &newSeq.Annotations)
+		case "PR":
+			parseEmblSCLine(string(line[4:]), "project_id", ";", &newSeq.Annotations)
+		case "DT":
 
+		case "DE":
+
+		case "KW":
+			parseEmblSCLine(string(line[4:]), "keywords", ".", &newSeq.Annotations)
 		case "FH":
 			hasFH = true // Found the FH line
 			lastTag = "FH"
