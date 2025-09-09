@@ -191,6 +191,18 @@ func concatenateEmblLine(dt, dest string) string {
 	}
 }
 
+// Simply stack lines in annotations
+func stackEmblLine(dt, key string, a *map[string][]string) {
+	// Check if the annotation array is initiated
+	_, ok := (*a)[key]
+	if !ok {
+		(*a)[key] = make([]string, 0)
+	}
+
+	// Copy the line
+	(*a)[key] = append((*a)[key], dt)
+}
+
 // EMBL Read method
 func (r *EmblReader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
@@ -265,8 +277,14 @@ HEADER:
 		case "OC":
 			parseEmblSCLine(string(line[4:]), "classification", &newSeq.Annotations)
 		case "OG":
-			newSeq.Annotations["organelle"] = make([]string, 1)
-			newSeq.Annotations["organelle"][0] = string(line[4:])
+			stackEmblLine(string(line[4:]), "organelle", &newSeq.Annotations)
+		case "DR":
+			parseEmblSCLine(string(line[4:]), "cross_reference", &newSeq.Annotations)
+		case "RN", "RC", "RP", "RX", "RG", "RA", "RT", "RL":
+			// Not managed for the moment
+			continue
+		case "CC":
+			stackEmblLine(string(line[4:]), "comments", &newSeq.Annotations)
 		case "FH":
 			hasFH = true // Found the FH line
 			lastTag = "FH"
@@ -285,6 +303,12 @@ HEADER:
 		case "//":
 			// Reach end of entry, not possible
 			return newSeq, errors.New("reached end of entry without detecting features or sequence data")
+		case "AS":
+			stackEmblLine(string(line[4:]), "assembly", &newSeq.Annotations)
+		case "AH":
+			stackEmblLine(string(line[4:]), "assembly_header", &newSeq.Annotations)
+		case "CO":
+			stackEmblLine(string(line[4:]), "contigs", &newSeq.Annotations)
 		default:
 			// unsupported tag return an error
 			return newSeq, fmt.Errorf("unsupported line tag: %s", tag)
@@ -303,7 +327,6 @@ HEADER:
 				return newSeq, fmt.Errorf("embl entry is malformed: missing feature header line FH")
 			}
 		}
-
 	}
 
 	// Return the populated sequence object
