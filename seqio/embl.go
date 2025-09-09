@@ -73,17 +73,17 @@ func parseEmblIdLine(dt string, a *map[string][]string) (string, error) {
 	if len(dts) == 7 {
 		// Check if ID is ok
 		id := reId.FindStringSubmatch(dts[0])
-		if len(id) == 0 {
+		if len(id) != 2 {
 			return "", fmt.Errorf("ID line is malformed: failed to find the sequence id: %s", dt)
 		}
 
 		// Get the sequence version
 		tmp := regexp.MustCompile(`(\d+)$`).FindStringSubmatch(dts[1])
-		if len(tmp) == 0 {
+		if len(tmp) != 2 {
 			(*a)["ID_line"] = append((*a)["ID_line"], dt)
 			(*a)["ID_msg"] = append((*a)["ID_msg"], "ID line is malformed: failed to retrieve the sequence version")
 		} else {
-			(*a)["version"] = append((*a)["version"], tmp[0])
+			(*a)["version"] = append((*a)["version"], tmp[1])
 		}
 
 		// Get the topology (no check done)
@@ -100,24 +100,24 @@ func parseEmblIdLine(dt string, a *map[string][]string) (string, error) {
 
 		// Get the sequence length (just check it is numerical)
 		tmp = regexp.MustCompile(`^(\d+)`).FindStringSubmatch(dts[6])
-		if len(tmp) == 0 {
+		if len(tmp) != 2 {
 			(*a)["ID_line"] = append((*a)["ID_line"], dt)
 			(*a)["ID_msg"] = append((*a)["ID_msg"], "ID line is malformed: failed to retrieve the sequence length")
 		} else {
-			(*a)["sequence_length"] = append((*a)["sequence_length"], tmp[0])
+			(*a)["sequence_length"] = append((*a)["sequence_length"], tmp[1])
 		}
 
 		// Return the retrieved ID and no error
-		return id[0], nil
+		return id[1], nil
 	} else {
 		// ID line is malformed
 		// Try to get at least the ID of the sequence
 		tmp := reId.FindStringSubmatch(dt)
-		if len(tmp) == 1 {
+		if len(tmp) == 2 {
 			// Just keep the ID line as it is
 			(*a)["ID_line"] = append((*a)["ID_line"], dt)
 			(*a)["ID_msg"] = append((*a)["ID_msg"], "ID line is malformed: failed to find the seven element it should contain")
-			return tmp[0], nil
+			return tmp[1], nil
 		} else {
 			// Failed to get at least an ID
 			return "", fmt.Errorf("ID line is malformed: failed to find the sequence id: %s", dt)
@@ -147,12 +147,35 @@ func parseEmblSCLine(dt, key, end string, a *map[string][]string) {
 }
 
 // Parse date (DT) lines
-func parseEmblDtLine(dt, a *map[string][]string) {
+func parseEmblDtLine(dt string, a *map[string][]string) {
 	// Initiate annotations (if required)
 	_, ok := (*a)["DT_line"]
 	if !ok {
 		(*a)["DT_line"] = make([]string, 0)
 		(*a)["DT_msg"] = make([]string, 0)
+	}
+	tmp := regexp.MustCompile(`^([0-9]{2}\-[A-Z]{3}\-[0-9]{4}) \(Rel. (\d+), Created\)$`).FindStringSubmatch(dt)
+	if len(tmp) == 3 {
+		// Then it is the created date
+		(*a)["created_date"] = make([]string, 1)
+		(*a)["created_date"][0] = tmp[1]
+		(*a)["created_release"] = make([]string, 1)
+		(*a)["created_release"][0] = tmp[2]
+	} else {
+		tmp = regexp.MustCompile(`^([0-9]{2}\-[A-Z]{3}\-[0-9]{4}) \(Rel. (\d+), Last updated, Version (\d+)\)$`).FindStringSubmatch(dt)
+		if len(tmp) == 4 {
+			// Then it is the last release date
+			(*a)["last_date"] = make([]string, 1)
+			(*a)["last_date"][0] = tmp[1]
+			(*a)["last_release"] = make([]string, 1)
+			(*a)["last_release"][0] = tmp[2]
+			(*a)["last_version"] = make([]string, 1)
+			(*a)["last_version"][0] = tmp[3]
+		} else {
+			// Date line is malformed
+			(*a)["DT_line"] = append((*a)["DT_line"], dt)
+			(*a)["DT_msg"] = append((*a)["DT_msg"], "malformed DT line")
+		}
 	}
 }
 
@@ -215,7 +238,7 @@ HEADER:
 		case "PR":
 			parseEmblSCLine(string(line[4:]), "project_id", ";", &newSeq.Annotations)
 		case "DT":
-
+			parseEmblDtLine(string(line[4:]), &newSeq.Annotations)
 		case "DE":
 
 		case "KW":
