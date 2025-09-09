@@ -126,15 +126,16 @@ func parseEmblIdLine(dt string, a *map[string][]string) (string, error) {
 }
 
 // Parse value from line separated by semi-colon
-func parseEmblSCLine(dt, key, end string, a *map[string][]string) {
+func parseEmblSCLine(dt, key string, a *map[string][]string) {
 	// Initiate annotation if required
 	_, ok := (*a)[key]
 	if !ok {
 		(*a)[key] = make([]string, 0)
 	}
 
-	// Delete tailing semi-colon (if it exists)
-	dt, _ = strings.CutSuffix(dt, end)
+	// Delete tailing semi-colon or dot (if it exists)
+	dt, _ = strings.CutSuffix(dt, ";")
+	dt, _ = strings.CutSuffix(dt, ".")
 
 	// Replace space characters by nothing (just in case line misses some spaces)
 	dt = strings.ReplaceAll(dt, "; ", ";")
@@ -179,6 +180,17 @@ func parseEmblDtLine(dt string, a *map[string][]string) {
 	}
 }
 
+// Simply concatenate lines
+func concatenateEmblLine(dt, dest string) string {
+	// Delete possible final space
+	tmp := regexp.MustCompile(`\s+$`).ReplaceAllString(dt, "")
+	if len(dest) == 0 {
+		return tmp
+	} else {
+		return dest + " " + tmp
+	}
+}
+
 // EMBL Read method
 func (r *EmblReader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
@@ -187,6 +199,7 @@ func (r *EmblReader) Read() (seq.Seq, error) {
 	// Initialize attributes
 	newSeq.Annotations = make(map[string][]string)
 	newSeq.Features = make([]*feature.Feature, 0)
+	newSeq.Desc = ""
 
 	// First scan the header lines
 	hasID := false // Control that entry has an ID line
@@ -234,15 +247,26 @@ HEADER:
 				return newSeq, err
 			}
 		case "AC":
-			parseEmblSCLine(string(line[4:]), "accession", ";", &newSeq.Annotations)
+			parseEmblSCLine(string(line[4:]), "accession", &newSeq.Annotations)
 		case "PR":
-			parseEmblSCLine(string(line[4:]), "project_id", ";", &newSeq.Annotations)
+			parseEmblSCLine(string(line[4:]), "project_id", &newSeq.Annotations)
 		case "DT":
 			parseEmblDtLine(string(line[4:]), &newSeq.Annotations)
 		case "DE":
-
+			newSeq.Desc = concatenateEmblLine(string(line[4:]), newSeq.Desc)
 		case "KW":
-			parseEmblSCLine(string(line[4:]), "keywords", ".", &newSeq.Annotations)
+			parseEmblSCLine(string(line[4:]), "keywords", &newSeq.Annotations)
+		case "OS":
+			_, ok := newSeq.Annotations["species"]
+			if !ok {
+				newSeq.Annotations["species"] = make([]string, 1)
+			}
+			newSeq.Annotations["species"][0] = concatenateEmblLine(string(line[4:]), newSeq.Annotations["species"][0])
+		case "OC":
+			parseEmblSCLine(string(line[4:]), "classification", &newSeq.Annotations)
+		case "OG":
+			newSeq.Annotations["organelle"] = make([]string, 1)
+			newSeq.Annotations["organelle"][0] = string(line[4:])
 		case "FH":
 			hasFH = true // Found the FH line
 			lastTag = "FH"
