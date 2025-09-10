@@ -254,37 +254,37 @@ HEADER:
 			continue
 		case "ID":
 			hasID = true // Found the ID line
-			newSeq.Id, err = parseEmblIdLine(string(line[4:]), &newSeq.Annotations)
+			newSeq.Id, err = parseEmblIdLine(string(line[5:]), &newSeq.Annotations)
 			if err != nil {
 				return newSeq, err
 			}
 		case "AC":
-			parseEmblSCLine(string(line[4:]), "accession", &newSeq.Annotations)
+			parseEmblSCLine(string(line[5:]), "accession", &newSeq.Annotations)
 		case "PR":
-			parseEmblSCLine(string(line[4:]), "project_id", &newSeq.Annotations)
+			parseEmblSCLine(string(line[5:]), "project_id", &newSeq.Annotations)
 		case "DT":
-			parseEmblDtLine(string(line[4:]), &newSeq.Annotations)
+			parseEmblDtLine(string(line[5:]), &newSeq.Annotations)
 		case "DE":
-			newSeq.Desc = concatenateEmblLine(string(line[4:]), newSeq.Desc)
+			newSeq.Desc = concatenateEmblLine(string(line[5:]), newSeq.Desc)
 		case "KW":
-			parseEmblSCLine(string(line[4:]), "keywords", &newSeq.Annotations)
+			parseEmblSCLine(string(line[5:]), "keywords", &newSeq.Annotations)
 		case "OS":
 			_, ok := newSeq.Annotations["species"]
 			if !ok {
 				newSeq.Annotations["species"] = make([]string, 1)
 			}
-			newSeq.Annotations["species"][0] = concatenateEmblLine(string(line[4:]), newSeq.Annotations["species"][0])
+			newSeq.Annotations["species"][0] = concatenateEmblLine(string(line[5:]), newSeq.Annotations["species"][0])
 		case "OC":
-			parseEmblSCLine(string(line[4:]), "classification", &newSeq.Annotations)
+			parseEmblSCLine(string(line[5:]), "classification", &newSeq.Annotations)
 		case "OG":
-			stackEmblLine(string(line[4:]), "organelle", &newSeq.Annotations)
+			stackEmblLine(string(line[5:]), "organelle", &newSeq.Annotations)
 		case "DR":
-			parseEmblSCLine(string(line[4:]), "cross_reference", &newSeq.Annotations)
+			parseEmblSCLine(string(line[5:]), "cross_reference", &newSeq.Annotations)
 		case "RN", "RC", "RP", "RX", "RG", "RA", "RT", "RL":
 			// Not managed for the moment
 			continue
 		case "CC":
-			stackEmblLine(string(line[4:]), "comments", &newSeq.Annotations)
+			stackEmblLine(string(line[5:]), "comments", &newSeq.Annotations)
 		case "FH":
 			hasFH = true // Found the FH line
 			lastTag = "FH"
@@ -304,30 +304,33 @@ HEADER:
 			// Reach end of entry, not possible
 			return newSeq, errors.New("reached end of entry without detecting features or sequence data")
 		case "AS":
-			stackEmblLine(string(line[4:]), "assembly", &newSeq.Annotations)
+			stackEmblLine(string(line[5:]), "assembly", &newSeq.Annotations)
 		case "AH":
-			stackEmblLine(string(line[4:]), "assembly_header", &newSeq.Annotations)
+			stackEmblLine(string(line[5:]), "assembly_header", &newSeq.Annotations)
 		case "CO":
-			stackEmblLine(string(line[4:]), "contigs", &newSeq.Annotations)
+			stackEmblLine(string(line[5:]), "contigs", &newSeq.Annotations)
 		default:
 			// unsupported tag return an error
 			return newSeq, fmt.Errorf("unsupported line tag: %s", tag)
 		}
+	}
 
-		// Check if ID line was encountered
-		if !hasID {
-			return newSeq, errors.New("missing ID line the provided entry")
-		}
+	// Check if ID line was encountered
+	if !hasID {
+		return newSeq, errors.New("missing ID line the provided entry")
+	}
 
-		// Check if stopped at feature header
-		if !hasFH {
-			// Then only accept to be at the SQ line
-			if lastTag != "SQ" {
-				// NOTE: could not be fatal, let see later...
-				return newSeq, fmt.Errorf("embl entry is malformed: missing feature header line FH")
-			}
+	// Check if stopped at feature header
+	if !hasFH {
+		// Then only accept to be at the SQ line
+		if lastTag != "SQ" {
+			// NOTE: could not be fatal, let see later...
+			return newSeq, fmt.Errorf("embl entry is malformed: missing feature header line FH")
 		}
 	}
+
+	// For testing purpose define a non empty sequence
+	newSeq.Sequence = []byte{'A', 'C', 'G', 'T'}
 
 	// Return the populated sequence object
 	return newSeq, nil

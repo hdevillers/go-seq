@@ -14,6 +14,7 @@ test:
 	go test -v feature/location.go feature/location_test.go
 	go test -v feature/value.go feature/value_test.go
 	go test -v feature/qualifier.go feature/value.go feature/qualifier_test.go
+	go test -v seqio/fasta.go seqio/fastq.go seqio/fastnq.go seqio/seqio.go seqio/seqitf.go seqio/embl.go seqio/embl_test.go
 
 install:
 	cp bin/sequence-length $(INSTALL_DIR)/sequence-length
