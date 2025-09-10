@@ -89,6 +89,12 @@ func NewReader(file string, format string, compress ...bool) *Reader {
 			fcloser: fc,
 			sreader: sreader,
 		}
+	case "embl":
+		sreader = NewEmblReader(fs)
+		return &Reader{
+			fcloser: fc,
+			sreader: sreader,
+		}
 	default:
 		return &Reader{
 			err: errors.New("[SEQIO READER]: Unsupported format (" + format + ")."),
@@ -121,7 +127,12 @@ func (r *Reader) Close() {
 	r.fcloser.Close()
 }
 
-// Get errors
+// Get error attribute content
+func (r *Reader) GetError() error {
+	return r.err
+}
+
+// Panic if an error occurred during parsing
 func (r *Reader) CheckPanic() {
 	if r.err != nil {
 		panic(r.err)
