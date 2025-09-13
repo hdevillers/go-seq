@@ -181,13 +181,13 @@ func parseEmblDtLine(dt string, a *map[string][]string) {
 }
 
 // Simply concatenate lines
-func concatenateEmblLine(dt, dest string) string {
+func concatenateEmblLine(dt, dest, sep string) string {
 	// Delete possible final space
 	tmp := regexp.MustCompile(`\s+$`).ReplaceAllString(dt, "")
 	if len(dest) == 0 {
 		return tmp
 	} else {
-		return dest + " " + tmp
+		return dest + sep + tmp
 	}
 }
 
@@ -265,7 +265,7 @@ HEADER:
 		case "DT":
 			parseEmblDtLine(string(line[5:]), &newSeq.Annotations)
 		case "DE":
-			newSeq.Desc = concatenateEmblLine(string(line[5:]), newSeq.Desc)
+			newSeq.Desc = concatenateEmblLine(string(line[5:]), newSeq.Desc, " ")
 		case "KW":
 			parseEmblSCLine(string(line[5:]), "keywords", &newSeq.Annotations)
 		case "OS":
@@ -273,7 +273,7 @@ HEADER:
 			if !ok {
 				newSeq.Annotations["species"] = make([]string, 1)
 			}
-			newSeq.Annotations["species"][0] = concatenateEmblLine(string(line[5:]), newSeq.Annotations["species"][0])
+			newSeq.Annotations["species"][0] = concatenateEmblLine(string(line[5:]), newSeq.Annotations["species"][0], " ")
 		case "OC":
 			parseEmblSCLine(string(line[5:]), "classification", &newSeq.Annotations)
 		case "OG":
@@ -325,8 +325,134 @@ HEADER:
 		// Then only accept to be at the SQ line
 		if lastTag != "SQ" {
 			// NOTE: could not be fatal, let see later...
-			return newSeq, fmt.Errorf("embl entry is malformed: missing feature header line FH")
+			return newSeq, errors.New("embl entry is malformed: missing feature header line FH")
 		}
+	}
+
+	// Continue to parse the entry
+	var line []byte
+	if lastTag == "FH" {
+		// Reach the feature line(s) FT
+	SEARCHFT:
+		for r.scan.Scan() {
+			// Check possible scanning error
+			err := r.scan.Err()
+			if err != nil {
+				return newSeq, err
+			}
+			line = r.scan.Bytes()
+			if line[0] == 'F' && line[1] == 'T' {
+				lastTag = "FT"
+				break SEARCHFT
+			}
+			if line[0] == 'S' && line[1] == 'Q' {
+				lastTag = "SQ"
+				break SEARCHFT
+			}
+		}
+	}
+
+	// If the scanner reach end of file then the entry miss feature and sequence
+	if r.IsEOF() {
+		return newSeq, errors.New("embl entry is malformed: failed to find features or sequence data")
+	}
+
+	// If found FT line(s)
+	ftType := ""
+	ftLoc := ""
+	tmpQual := ""
+	ftQual := make([]string, 0)
+	for lastTag == "FT" {
+		// New feature have primary tag indicated from byte 6
+		if line[5] == ' ' {
+			// Not the first line of a feature
+			if line[21] == '/' {
+				// Beginning of a new qualifier
+				if tmpQual != "" {
+					ftQual = append(ftQual, tmpQual)
+				}
+				tmpQual = regexp.MustCompile(`\s+$`).ReplaceAllString(string(line[21:]), "")
+			} else {
+				if tmpQual == "" {
+					// Still reading location
+					ftLoc = concatenateEmblLine(string(line[21:]), ftLoc, "")
+				} else {
+					// Complete Qualifier data
+					tmpQual = concatenateEmblLine(string(line[21:]), tmpQual, " ")
+				}
+			}
+		} else {
+			// First line of a feature
+			if ftType != "" {
+				// Not the first feature, store the previous one
+				newFeature, err := feature.NewFeature(ftType, ftLoc)
+				if err != nil {
+					return newSeq, err
+				}
+				// Add all qualifiers
+				for _, q := range ftQual {
+					key, val, ok := strings.Cut(q, "=")
+					if !ok {
+						// Qualifier is malformed
+						return newSeq, fmt.Errorf("malformed qualifier: missing key (%s)", q)
+					}
+					newQual, err := feature.NewQualifier(key, val)
+					if err != nil {
+						return newSeq, err
+					}
+					newFeature.Qualifiers = append(newFeature.Qualifiers, newQual)
+				}
+				newSeq.Features = append(newSeq.Features, newFeature)
+
+				// Reset running qualifier variables
+				ftType = ""
+				ftLoc = ""
+				tmpQual = ""
+				ftQual = make([]string, 0)
+			}
+			// Get the new type
+			ok := false
+			ftType, _, ok = strings.Cut(string(line[5:]), " ")
+			if !ok {
+				// FT line is malformed
+				return newSeq, fmt.Errorf("malformed FT line: (%s)", line)
+			}
+			// Get the location data
+			ftLoc = string(line[21:])
+		}
+		// Read next line
+		if r.scan.Scan() {
+			err := r.scan.Err()
+			if err != nil {
+				return newSeq, err
+			}
+			line = r.scan.Bytes()
+			lastTag = string(line[0:2])
+		} else {
+			// Should not reach the end of file here
+			return newSeq, errors.New("embl entry is malformed: reached end of file while parsing feature(s)")
+		}
+	}
+	// Store the last feature (if necessary)
+	if ftType != "" {
+		newFeature, err := feature.NewFeature(ftType, ftLoc)
+		if err != nil {
+			return newSeq, err
+		}
+		// Add all qualifiers
+		for _, q := range ftQual {
+			key, val, ok := strings.Cut(q, "=")
+			if !ok {
+				// Qualifier is malformed
+				return newSeq, fmt.Errorf("malformed qualifier: missing key (%s)", q)
+			}
+			newQual, err := feature.NewQualifier(key, val)
+			if err != nil {
+				return newSeq, err
+			}
+			newFeature.Qualifiers = append(newFeature.Qualifiers, newQual)
+		}
+		newSeq.Features = append(newSeq.Features, newFeature)
 	}
 
 	// For testing purpose define a non empty sequence
