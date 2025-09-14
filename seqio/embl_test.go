@@ -111,3 +111,90 @@ func TestEmblHeaderNoRef(t *testing.T) {
 		t.Error("Failed to call next sequence.")
 	}
 }
+
+// Parse a regular EMBL (without reference in the header)
+func TestEmblFeatures(t *testing.T) {
+	seqIn := NewReader("../examples/EMBL/normal_noRef.embl", "embl", false)
+
+	// Check if the reader was properly initiated
+	err := seqIn.GetError()
+	if err != nil {
+		t.Errorf("Reader initiation failed: %s.", err)
+	}
+	defer seqIn.Close()
+
+	// Parse the sequence
+	if seqIn.Next() {
+		// Check parsing error
+		err = seqIn.GetError()
+		if err != nil {
+			t.Errorf("Sequence parsing failed: %s.", err)
+		}
+
+		// Load the sequence
+		seq := seqIn.seq
+
+		// The testing file contain 3 features
+		if len(seq.Features) != 3 {
+			t.Errorf("The embl entry should contain 3 features, found %d.", len(seq.Features))
+		}
+
+		// The first one should be source
+		if seq.Features[0].Type != "source" {
+			t.Errorf("The first feature type should be 'source', found %s.", seq.Features[0].Type)
+		}
+
+		// Source start
+		if seq.Features[0].Location.Start != 1 {
+			t.Errorf("Feature 'source' start should be 1, found %d.", seq.Features[0].Location.Start)
+		}
+
+		// Source end
+		if seq.Features[0].Location.End != 1859 {
+			t.Errorf("Feature 'source' end should be 1859, found %d.", seq.Features[0].Location.End)
+		}
+
+		// Source should have 6 qualifiers
+		if len(seq.Features[0].Qualifiers) != 6 {
+			t.Errorf("Feature 'source' should have 6 qualifier entries, found %d.", len(seq.Features[0].Qualifiers))
+		}
+
+		// The second one should be mRNA
+		if seq.Features[1].Type != "mRNA" {
+			t.Errorf("The first feature type should be 'mRNA', found %s.", seq.Features[1].Type)
+		}
+
+		// mRNA should have 1 qualifier
+		if len(seq.Features[1].Qualifiers) != 1 {
+			t.Errorf("Feature 'source' should have 1 qualifier entry, found %d.", len(seq.Features[1].Qualifiers))
+		}
+
+		// The third one should be CDS
+		if seq.Features[2].Type != "CDS" {
+			t.Errorf("The first feature type should be 'CDS', found %s.", seq.Features[2].Type)
+		}
+
+		// CDS should have 11 qualifiers
+		if len(seq.Features[2].Qualifiers) != 11 {
+			t.Errorf("Feature 'source' should have 11 qualifier entries, found %d.", len(seq.Features[2].Qualifiers))
+		}
+
+		// Checking qualifier values
+		// * value with quotes and on a single line
+		if seq.Features[0].Qualifiers[4].Value.ToString() != "\"leaves\"" {
+			t.Errorf("Bad qualifier value, expected \"leaves\", found %s.", seq.Features[0].Qualifiers[4].Value.ToString())
+		}
+		// * value without quote on a single line
+		if seq.Features[2].Qualifiers[3].Value.ToString() != "1" {
+			t.Errorf("Bad qualifier value, expected 1, found %s.", seq.Features[2].Qualifiers[3].Value.ToString())
+		}
+		// * value with quotes but on two lines
+		if seq.Features[1].Qualifiers[0].Value.ToString() != "\"experimental evidence, no additional details recorded\"" {
+			t.Errorf("Bad qualifier value, expected \"experimental evidence, no additional details recorded\", found %s.", seq.Features[1].Qualifiers[0].Value.ToString())
+		}
+		// * boolean value
+		if !seq.Features[2].Qualifiers[4].Value.IsBool {
+			t.Error("Bad qualifier value, expected to be boolean, but stored as regular value.")
+		}
+	}
+}

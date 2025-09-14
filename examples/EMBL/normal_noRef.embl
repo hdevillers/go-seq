@@ -32,8 +32,8 @@ FT   CDS             14..1495
 FT                   /product="beta-glucosidase"
 FT                   /EC_number="3.2.1.21"
 FT                   /note="non-cyanogenic"
-FT                   /db_xref="GOA:P26204"
-FT                   /db_xref="InterPro:IPR001360"
+FT                   /codon_start=1
+FT                   /circular_RNA
 FT                   /db_xref="InterPro:IPR013781"
 FT                   /db_xref="InterPro:IPR017853"
 FT                   /db_xref="InterPro:IPR018120"
