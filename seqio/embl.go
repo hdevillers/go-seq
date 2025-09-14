@@ -389,12 +389,21 @@ HEADER:
 				if err != nil {
 					return newSeq, err
 				}
+				// Store the last qualifier (if required)
+				if tmpQual != "" {
+					ftQual = append(ftQual, tmpQual)
+				}
 				// Add all qualifiers
 				for _, q := range ftQual {
 					key, val, ok := strings.Cut(q, "=")
 					if !ok {
-						// Qualifier is malformed
-						return newSeq, fmt.Errorf("malformed qualifier: missing key (%s)", q)
+						// This could be a boolean entry
+						if regexp.MustCompile(`^/\w+$`).MatchString(q) {
+							val = ""
+						} else {
+							// Qualifier is malformed
+							return newSeq, fmt.Errorf("malformed qualifier: missing key (%s)", q)
+						}
 					}
 					newQual, err := feature.NewQualifier(key, val)
 					if err != nil {
@@ -439,12 +448,21 @@ HEADER:
 		if err != nil {
 			return newSeq, err
 		}
+		// Store the last qualifier (if required)
+		if tmpQual != "" {
+			ftQual = append(ftQual, tmpQual)
+		}
 		// Add all qualifiers
 		for _, q := range ftQual {
 			key, val, ok := strings.Cut(q, "=")
 			if !ok {
-				// Qualifier is malformed
-				return newSeq, fmt.Errorf("malformed qualifier: missing key (%s)", q)
+				// This could be a boolean entry
+				if regexp.MustCompile(`^/\w+$`).MatchString(q) {
+					val = ""
+				} else {
+					// Qualifier is malformed
+					return newSeq, fmt.Errorf("malformed qualifier: missing key (%s)", q)
+				}
 			}
 			newQual, err := feature.NewQualifier(key, val)
 			if err != nil {
