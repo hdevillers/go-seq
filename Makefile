@@ -5,6 +5,7 @@ ifdef prefix
 endif
 
 build:
+	go build -o bin/sequence-gc ./cmd/sequence-gc/main.go
 	go build -o bin/sequence-length ./cmd/sequence-length/main.go
 	go build -o bin/sequence-random ./cmd/sequence-random/main.go
 	go build -o bin/sequence-shuffle ./cmd/sequence-shuffle/main.go
@@ -17,12 +18,14 @@ test:
 	go test -v seqio/fasta.go seqio/fastq.go seqio/fastnq.go seqio/seqio.go seqio/seqitf.go seqio/embl.go seqio/embl_test.go
 
 install:
+	cp bin/sequence-gc $(INSTALL_DIR)/sequence-gc
 	cp bin/sequence-length $(INSTALL_DIR)/sequence-length
 	cp bin/sequence-random $(INSTALL_DIR)/sequence-random
 	cp bin/sequence-shuffle $(INSTALL_DIR)/sequence-shuffle
 	cp bin/fastq-sample $(INSTALL_DIR)/fastq-sample
 
 uninstall:
+	rm -f $(INSTALL_DIR)/sequence-gc
 	rm -f $(INSTALL_DIR)/sequence-length
 	rm -f $(INSTALL_DIR)/sequence-random
 	rm -f $(INSTALL_DIR)/sequence-shuffle
