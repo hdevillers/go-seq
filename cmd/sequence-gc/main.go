@@ -42,9 +42,9 @@ func main() {
 		for seqIn.Next() {
 			seqIn.CheckPanic()
 			seq := seqIn.Seq()
-			ngci, _ := gc.Count(&seq)
+			ngci, skpi, _ := gc.Count(&seq)
 			ngc += ngci
-			ntt += int64(seq.Length())
+			ntt += int64(seq.Length()) - skpi
 		}
 		gcc := float64(ngc) / float64(ntt) * 100.0
 		fmt.Printf("%s\t%.04f\n", *input, gcc)
@@ -53,8 +53,9 @@ func main() {
 		for seqIn.Next() {
 			seqIn.CheckPanic()
 			seq := seqIn.Seq()
-			ngc, _ := gc.Count(&seq)
-			gcc := float64(ngc) / float64(seq.Length()) * 100.0
+			ngc, skp, _ := gc.Count(&seq)
+			// TODO: control that skp is smaller than seq.Length()
+			gcc := float64(ngc) / float64(int64(seq.Length())-skp) * 100.0
 			fmt.Printf("%s\t%.04f\n", seq.Id, gcc)
 		}
 	case "windows":
@@ -70,11 +71,12 @@ func main() {
 			seqIn.CheckPanic()
 			seq := seqIn.Seq()
 			for i := 0; i < (seq.Length() - *winLen + 1); i += *winSte {
-				ngc, err := gc.CountIndex(&seq, i+1, i+*winLen)
+				ngc, skp, err := gc.CountIndex(&seq, i+1, i+*winLen)
 				if err != nil {
 					panic(err)
 				}
-				gcc := float64(ngc) / float64(*winLen) * 100.0
+				// TODO: control that skp is smaller tha winLen
+				gcc := float64(ngc) / float64(int64(*winLen)-skp) * 100.0
 				fmt.Printf("%s.%d\t%.04f\n", seq.Id, i+1, gcc)
 			}
 			// NOTE: Sequences shorter then window length are just skipped.
@@ -122,8 +124,8 @@ func main() {
 			// Check if precise location are required
 			if *indFrom == -1 && *indTo == -1 {
 				// Compute the GC content for the whole sequence
-				ngc, _ := gc.Count(&seq)
-				gcc := float64(ngc) / float64(seq.Length()) * 100.0
+				ngc, skp, _ := gc.Count(&seq)
+				gcc := float64(ngc) / float64(int64(seq.Length())-skp) * 100.0
 				fmt.Printf("%s\t%.04f\n", seq.Id, gcc)
 			} else {
 				if *indFrom < 1 {
@@ -135,11 +137,11 @@ func main() {
 				if *indTo > seq.Length() {
 					panic("Sequence end location is out of bound.")
 				}
-				ngc, err := gc.CountIndex(&seq, *indFrom, *indTo)
+				ngc, skp, err := gc.CountIndex(&seq, *indFrom, *indTo)
 				if err != nil {
 					panic(err)
 				}
-				gcc := float64(ngc) / float64(*indTo-*indFrom+1) * 100.0
+				gcc := float64(ngc) / float64(int64(*indTo-*indFrom+1)-skp) * 100.0
 				fmt.Printf("%s.%dto%d\t%.04f\n", seq.Id, *indFrom, *indTo, gcc)
 			}
 		} else {
