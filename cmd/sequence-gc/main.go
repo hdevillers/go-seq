@@ -75,9 +75,10 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				// TODO: control that skp is smaller tha winLen
-				gcc := float64(ngc) / float64(int64(*winLen)-skp) * 100.0
-				fmt.Printf("%s.%d\t%.04f\n", seq.Id, i+1, gcc)
+				if int(skp) < *winLen {
+					gcc := float64(ngc) / float64(int64(*winLen)-skp) * 100.0
+					fmt.Printf("%s.%d\t%.04f\n", seq.Id, i+1, gcc)
+				} // Just skip reporting to avoid division by zero
 			}
 			// NOTE: Sequences shorter then window length are just skipped.
 		}
